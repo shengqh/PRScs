@@ -12,9 +12,14 @@ from scipy.stats import norm
 from scipy import linalg
 import h5py
 
+from logger import get_logger
 
-def parse_ref(ref_file, chrom):
-    print('... parse reference file: %s ...' % ref_file)
+logger = get_logger()
+
+def parse_ref(ref_file, chrom, ref_snpname='snplist'):
+    logger.info('... parse reference file: %s ...' % ref_file)
+
+    snp_index = 1 if ref_snpname='snplist' else 6
 
     ref_dict = {'CHR':[], 'SNP':[], 'BP':[], 'A1':[], 'A2':[], 'MAF':[]}
     with open(ref_file) as ff:
@@ -23,21 +28,42 @@ def parse_ref(ref_file, chrom):
             ll = (line.strip()).split()
             if int(ll[0]) == chrom:
                 ref_dict['CHR'].append(chrom)
-                ref_dict['SNP'].append(ll[1])
+                ref_dict['SNP'].append(ll[snp_index])
                 ref_dict['BP'].append(int(ll[2]))
                 ref_dict['A1'].append(ll[3])
                 ref_dict['A2'].append(ll[4])
                 ref_dict['MAF'].append(float(ll[5]))
 
-    print('... %d SNPs on chromosome %d read from %s ...' % (len(ref_dict['SNP']), chrom, ref_file))
+    logger.info('... %d SNPs on chromosome %d read from %s ...' % (len(ref_dict['SNP']), chrom, ref_file))
     return ref_dict
-
-
-def parse_bim(bim_file, chrom):
-    print('... parse bim file: %s ...' % (bim_file + '.bim'))
+  
+def parse_pvar(pvar_file, chrom):
+    logger.info('... parse pvar file: %s ...' % (pvar_file))
 
     vld_dict = {'SNP':[], 'A1':[], 'A2':[]}
-    with open(bim_file + '.bim') as ff:
+    with open(pvar_file) as ff:
+        for line in ff:
+            if line.startswith('#'):
+                continue
+            ll = (line.strip()).split()
+            if int(ll[0]) == chrom:
+                vld_dict['SNP'].append(ll[2])
+                vld_dict['A1'].append(ll[4])
+                vld_dict['A2'].append(ll[3])
+
+    logger.info('... %d SNPs on chromosome %d read from %s ...' % (len(vld_dict['SNP']), chrom, pvar_file))
+    return vld_dict
+
+def parse_bim(bim_prefix, chrom):
+    pvar_file = bim_prefix + '.pvar'
+    if os.path.exists(pvar_file):
+        return parse_pvar(pvar_file, chrom)
+
+    bim_file = bim_prefix + '.bim'
+    logger.info('... parse bim file: %s ...' % (bim_file))
+
+    vld_dict = {'SNP':[], 'A1':[], 'A2':[]}
+    with open(bim_file) as ff:
         for line in ff:
             ll = (line.strip()).split()
             if int(ll[0]) == chrom:
@@ -45,12 +71,11 @@ def parse_bim(bim_file, chrom):
                 vld_dict['A1'].append(ll[4])
                 vld_dict['A2'].append(ll[5])
 
-    print('... %d SNPs on chromosome %d read from %s ...' % (len(vld_dict['SNP']), chrom, bim_file + '.bim'))
+    logger.info('... %d SNPs on chromosome %d read from %s ...' % (len(vld_dict['SNP']), chrom, bim_file))
     return vld_dict
 
-
 def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
-    print('... parse sumstats file: %s ...' % sst_file)
+    logger.info('... parse sumstats file: %s ...' % sst_file)
 
     ATGC = ['A', 'T', 'G', 'C']
     sst_dict = {'SNP':[], 'A1':[], 'A2':[]}
@@ -63,7 +88,7 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
                 sst_dict['A1'].append(ll[1])
                 sst_dict['A2'].append(ll[2])
 
-    print('... %d SNPs read from %s ...' % (len(sst_dict['SNP']), sst_file))
+    logger.info('... %d SNPs read from %s ...' % (len(sst_dict['SNP']), sst_file))
 
 
     mapping = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
@@ -80,7 +105,7 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
 
     comm_snp = vld_snp & ref_snp & sst_snp
 
-    print('... %d common SNPs in the reference, sumstats, and validation set ...' % len(comm_snp))
+    logger.info('... %d common SNPs in the reference, sumstats, and validation set ...' % len(comm_snp))
 
 
     n_sqrt = np.sqrt(n_subj)
@@ -157,8 +182,8 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
     return sst_dict
 
 
-def parse_ldblk(ldblk_dir, sst_dict, chrom):
-    print('... parse reference LD on chromosome %d ...' % chrom)
+def parse_ldblk(ldblk_dir, sst_dict, chrom, ldblk_snpname='snplist'):
+    logger.info('... parse reference LD on chromosome %d ...' % chrom)
 
     if '1kg' in os.path.basename(ldblk_dir):
         chr_name = ldblk_dir + '/ldblk_1kg_chr' + str(chrom) + '.hdf5'
@@ -171,7 +196,7 @@ def parse_ldblk(ldblk_dir, sst_dict, chrom):
 
     snp_blk = []
     for blk in range(1,n_blk+1):
-        snp_blk.append([bb.decode("UTF-8") for bb in list(hdf_chr['blk_'+str(blk)]['snplist'])])
+        snp_blk.append([bb.decode("UTF-8") for bb in list(hdf_chr['blk_'+str(blk)][ldblk_snpname])])
 
     blk_size = []
     mm = 0

@@ -24,6 +24,9 @@ import parse_genet
 import mcmc_gtb
 import gigrnd
 
+from logger import get_logger
+
+logger = get_logger()
 
 def parse_param():
     long_opts_list = ['ref_dir=', 'bim_prefix=', 'sst_file=', 'a=', 'b=', 'phi=', 'n_gwas=',
@@ -48,6 +51,7 @@ def parse_param():
                 print(__doc__)
                 sys.exit(0)
             elif opt == "--ref_dir": param_dict['ref_dir'] = arg
+            elif opt == "--ref_snpname": param_dict['ref_snpname'] = arg
             elif opt == "--bim_prefix": param_dict['bim_prefix'] = arg
             elif opt == "--sst_file": param_dict['sst_file'] = arg
             elif opt == "--a": param_dict['a'] = float(arg)
@@ -71,7 +75,7 @@ def parse_param():
         print('* Please specify the directory to the reference panel using --ref_dir\n')
         sys.exit(2)
     elif param_dict['bim_prefix'] == None:
-        print('* Please specify the directory and prefix of the bim file for the target dataset using --bim_prefix\n')
+        print('* Please specify the directory and prefix of the bim/pvar file for the target dataset using --bim_prefix\n')
         sys.exit(2)
     elif param_dict['sst_file'] == None:
         print('* Please specify the summary statistics file using --sst_file\n')
@@ -82,6 +86,9 @@ def parse_param():
     elif param_dict['out_dir'] == None:
         print('* Please specify the output directory using --out_dir\n')
         sys.exit(2)
+
+    if param_dict['ref_snpname'] == None:
+      param_dict['ref_snpname'] = 'snplist'
 
     for key in param_dict:
         print('--%s=%s' % (key, param_dict[key]))
@@ -94,25 +101,22 @@ def main():
     param_dict = parse_param()
 
     for chrom in param_dict['chrom']:
-        print('##### process chromosome %d #####' % int(chrom))
+        logger.info('##### process chromosome %d #####' % int(chrom))
 
         if '1kg' in os.path.basename(param_dict['ref_dir']):
-            ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_1kg_hm3', int(chrom))
+            ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_1kg_hm3', int(chrom), param_dict['ref_snpname'])
         elif 'ukbb' in os.path.basename(param_dict['ref_dir']):
-            ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_ukbb_hm3', int(chrom))
+            ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_ukbb_hm3', int(chrom), param_dict['ref_snpname'])
 
         vld_dict = parse_genet.parse_bim(param_dict['bim_prefix'], int(chrom))
 
         sst_dict = parse_genet.parse_sumstats(ref_dict, vld_dict, param_dict['sst_file'], param_dict['n_gwas'])
 
-        ld_blk, blk_size = parse_genet.parse_ldblk(param_dict['ref_dir'], sst_dict, int(chrom))
+        ld_blk, blk_size = parse_genet.parse_ldblk(param_dict['ref_dir'], sst_dict, int(chrom), param_dict['ref_snpname'])
 
         mcmc_gtb.mcmc(param_dict['a'], param_dict['b'], param_dict['phi'], sst_dict, param_dict['n_gwas'], ld_blk, blk_size,
             param_dict['n_iter'], param_dict['n_burnin'], param_dict['thin'], int(chrom), param_dict['out_dir'], param_dict['beta_std'],
-	    param_dict['write_psi'], param_dict['write_pst'], param_dict['seed'])
-
-        print('\n')
-
+	          param_dict['write_psi'], param_dict['write_pst'], param_dict['seed'])
 
 if __name__ == '__main__':
     main()

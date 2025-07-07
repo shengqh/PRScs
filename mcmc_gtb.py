@@ -11,9 +11,12 @@ from scipy import linalg
 from numpy import random
 import gigrnd
 
+from logger import get_logger
+
+logger = get_logger()
 
 def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom, out_dir, beta_std, write_psi, write_pst, seed):
-    print('... MCMC ...')
+    logger.info('... MCMC ...')
 
     # seed
     if seed != None:
@@ -122,8 +125,8 @@ def mcmc(a, b, phi, sst_dict, n, ld_blk, blk_size, n_iter, n_burnin, thin, chrom
 
     # print estimated phi
     if phi_updt == True:
-        print('... Estimated global shrinkage parameter: %1.2e ...' % phi_est )
+        logger.info('... Estimated global shrinkage parameter: %1.2e ...' % phi_est )
 
-    print('... Done ...')
+    logger.info('... Done ...')
 
 
