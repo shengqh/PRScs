@@ -19,7 +19,7 @@ logger = get_logger()
 def parse_ref(ref_file, chrom, ref_snpname='snplist'):
     logger.info('... parse reference file: %s ...' % ref_file)
 
-    snp_index = 1 if ref_snpname='snplist' else 6
+    snp_index = 1 if ref_snpname=='snplist' else 6
 
     ref_dict = {'CHR':[], 'SNP':[], 'BP':[], 'A1':[], 'A2':[], 'MAF':[]}
     with open(ref_file) as ff:
