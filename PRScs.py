@@ -10,7 +10,6 @@ Reference: T Ge, CY Chen, Y Ni, YCA Feng, JW Smoller. Polygenic Prediction via B
 
 Usage:
 python PRScs.py --ref_dir=PATH_TO_REFERENCE 
-                --bim_prefix=VALIDATION_BIM_PREFIX 
                 --sst_file=SUM_STATS_FILE 
                 --n_gwas=GWAS_SAMPLE_SIZE 
                 --out_dir=OUTPUT_DIR
@@ -42,10 +41,10 @@ from logger import get_logger
 logger = get_logger()
 
 def parse_param():
-    long_opts_list = ['ref_dir=', 'ref_snpname=', 'bim_prefix=', 'sst_file=', 'a=', 'b=', 'phi=', 'n_gwas=',
+    long_opts_list = ['ref_dir=', 'ref_snpname=', 'sst_file=', 'a=', 'b=', 'phi=', 'n_gwas=',
                       'n_iter=', 'n_burnin=', 'thin=', 'out_dir=', 'chrom=', 'beta_std=', 'write_psi=', 'write_pst=', 'seed=', 'help']
 
-    param_dict = {'ref_dir': None, 'ref_snpname': 'snplist', 'bim_prefix': None, 'sst_file': None, 'a': 1, 'b': 0.5, 'phi': None, 'n_gwas': None,
+    param_dict = {'ref_dir': None, 'ref_snpname': 'snplist', 'sst_file': None, 'a': 1, 'b': 0.5, 'phi': None, 'n_gwas': None,
                   'n_iter': 1000, 'n_burnin': 500, 'thin': 5, 'out_dir': None, 'chrom': range(1,23),
                   'beta_std': 'FALSE', 'write_psi': 'FALSE', 'write_pst': 'FALSE', 'seed': None}
 
@@ -65,7 +64,6 @@ def parse_param():
                 sys.exit(0)
             elif opt == "--ref_dir": param_dict['ref_dir'] = arg
             elif opt == "--ref_snpname": param_dict['ref_snpname'] = arg
-            elif opt == "--bim_prefix": param_dict['bim_prefix'] = arg
             elif opt == "--sst_file": param_dict['sst_file'] = arg
             elif opt == "--a": param_dict['a'] = float(arg)
             elif opt == "--b": param_dict['b'] = float(arg)
@@ -86,9 +84,6 @@ def parse_param():
 
     if param_dict['ref_dir'] == None:
         print('* Please specify the directory to the reference panel using --ref_dir\n')
-        sys.exit(2)
-    elif param_dict['bim_prefix'] == None:
-        print('* Please specify the directory and prefix of the bim/pvar file for the target dataset using --bim_prefix\n')
         sys.exit(2)
     elif param_dict['sst_file'] == None:
         print('* Please specify the summary statistics file using --sst_file\n')
@@ -118,9 +113,7 @@ def main():
         elif 'ukbb' in os.path.basename(param_dict['ref_dir']):
             ref_dict = parse_genet.parse_ref(param_dict['ref_dir'] + '/snpinfo_ukbb_hm3', int(chrom), param_dict['ref_snpname'])
 
-        vld_dict = parse_genet.parse_bim(param_dict['bim_prefix'], int(chrom))
-
-        sst_dict = parse_genet.parse_sumstats(ref_dict, vld_dict, param_dict['sst_file'], param_dict['n_gwas'])
+        sst_dict = parse_genet.parse_sumstats(ref_dict, param_dict['sst_file'], param_dict['n_gwas'])
 
         ld_blk, blk_size = parse_genet.parse_ldblk(param_dict['ref_dir'], sst_dict, int(chrom), param_dict['ref_snpname'])
 

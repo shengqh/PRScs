@@ -36,45 +36,8 @@ def parse_ref(ref_file, chrom, ref_snpname='snplist'):
 
     logger.info('... %d SNPs on chromosome %d read from %s ...' % (len(ref_dict['SNP']), chrom, ref_file))
     return ref_dict
-  
-def parse_pvar(pvar_file, chrom):
-    logger.info('... parse pvar file: %s ...' % (pvar_file))
 
-    vld_dict = {'SNP':[], 'A1':[], 'A2':[]}
-    with open(pvar_file) as ff:
-        for line in ff:
-            if line.startswith('#'):
-                continue
-            ll = (line.strip()).split()
-            if int(ll[0]) == chrom:
-                vld_dict['SNP'].append(ll[2])
-                vld_dict['A1'].append(ll[4])
-                vld_dict['A2'].append(ll[3])
-
-    logger.info('... %d SNPs on chromosome %d read from %s ...' % (len(vld_dict['SNP']), chrom, pvar_file))
-    return vld_dict
-
-def parse_bim(bim_prefix, chrom):
-    pvar_file = bim_prefix + '.pvar'
-    if os.path.exists(pvar_file):
-        return parse_pvar(pvar_file, chrom)
-
-    bim_file = bim_prefix + '.bim'
-    logger.info('... parse bim file: %s ...' % (bim_file))
-
-    vld_dict = {'SNP':[], 'A1':[], 'A2':[]}
-    with open(bim_file) as ff:
-        for line in ff:
-            ll = (line.strip()).split()
-            if int(ll[0]) == chrom:
-                vld_dict['SNP'].append(ll[1])
-                vld_dict['A1'].append(ll[4])
-                vld_dict['A2'].append(ll[5])
-
-    logger.info('... %d SNPs on chromosome %d read from %s ...' % (len(vld_dict['SNP']), chrom, bim_file))
-    return vld_dict
-
-def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
+def parse_sumstats(ref_dict, sst_file, n_subj):
     logger.info('... parse sumstats file: %s ...' % sst_file)
 
     ATGC = ['A', 'T', 'G', 'C']
@@ -93,8 +56,6 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
 
     mapping = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
-    vld_snp = set(zip(vld_dict['SNP'], vld_dict['A1'], vld_dict['A2']))
-
     ref_snp = set(zip(ref_dict['SNP'], ref_dict['A1'], ref_dict['A2'])) | set(zip(ref_dict['SNP'], ref_dict['A2'], ref_dict['A1'])) | \
               set(zip(ref_dict['SNP'], [mapping[aa] for aa in ref_dict['A1']], [mapping[aa] for aa in ref_dict['A2']])) | \
               set(zip(ref_dict['SNP'], [mapping[aa] for aa in ref_dict['A2']], [mapping[aa] for aa in ref_dict['A1']]))
@@ -103,9 +64,9 @@ def parse_sumstats(ref_dict, vld_dict, sst_file, n_subj):
               set(zip(sst_dict['SNP'], [mapping[aa] for aa in sst_dict['A1']], [mapping[aa] for aa in sst_dict['A2']])) | \
               set(zip(sst_dict['SNP'], [mapping[aa] for aa in sst_dict['A2']], [mapping[aa] for aa in sst_dict['A1']]))
 
-    comm_snp = vld_snp & ref_snp & sst_snp
+    comm_snp = ref_snp & sst_snp
 
-    logger.info('... %d common SNPs in the reference, sumstats, and validation set ...' % len(comm_snp))
+    logger.info('... %d common SNPs in the reference and sumstats ...' % len(comm_snp))
 
 
     n_sqrt = np.sqrt(n_subj)
